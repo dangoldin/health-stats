@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Config files
+config.json
+
+# Apple health files
+export.xml
