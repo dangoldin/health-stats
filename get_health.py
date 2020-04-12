@@ -1,9 +1,10 @@
 import json
 import mysql.connector
 from xml.dom import minidom
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import defaultdict, namedtuple
 from itertools import zip_longest
+import pytz
 
 Record = namedtuple('Record', 'type datetime value')
 
@@ -12,7 +13,25 @@ def grouper(n, iterable, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(fillvalue=fillvalue, *args)
 
-def read_records(fn):
+def get_max_datetime(creds):
+    mydb = mysql.connector.connect(
+        host = creds['host'],
+        user = creds['user'],
+        passwd = creds['pass'],
+        database = creds['database'],
+    )
+    mycursor = mydb.cursor()
+
+    sql = 'SELECT max(datetime) as max_datetime from health_stats'
+    mycursor.execute(sql)
+
+    # There will be one or none - assumes MySQL is in UTC
+    for (max_datetime,) in mycursor:
+        if max_datetime:
+            return max_datetime.replace(tzinfo=timezone.utc)
+    return None
+
+def read_records(fn, datetime_to_start = None):
     DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
     TYPE_MAP = {
@@ -23,12 +42,16 @@ def read_records(fn):
 
     TYPES = set(TYPE_MAP.keys())
 
+    if datetime_to_start is None:
+        datetime_to_start = datetime.strptime('1970-01-01', '%Y-%m-%d').replace(tzinfo=timezone.utc)
+
     xmldoc = minidom.parse(fn)
     for s in xmldoc.getElementsByTagName('Record'):
         if s.attributes['type'].value in TYPES:
             dt = datetime.strptime(s.attributes['startDate'].value, DATETIME_FORMAT)
-            val = s.attributes['value'].value
-            yield Record(TYPE_MAP[s.attributes['type'].value], dt, val)
+            if dt > datetime_to_start:
+                val = s.attributes['value'].value
+                yield Record(TYPE_MAP[s.attributes['type'].value], dt.astimezone(pytz.UTC), val)
 
 def save_records(creds, record_generator):
     BATCH_SIZE = 50
@@ -55,4 +78,6 @@ if __name__ == '__main__':
     with open('config.json', 'r') as f:
         config = json.load(f)
 
-    save_records(config['db'], read_records('export.xml'))
+    datetime_to_start = get_max_datetime(config['db'])
+
+    save_records(config['db'], read_records('export.xml', datetime_to_start))
