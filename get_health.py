@@ -54,7 +54,7 @@ def read_records(fn, datetime_to_start = None):
                 yield Record(TYPE_MAP[s.attributes['type'].value], dt.astimezone(pytz.UTC), val)
 
 def save_records(creds, record_generator):
-    BATCH_SIZE = 50
+    BATCH_SIZE = 100
 
     mydb = mysql.connector.connect(
         host = creds['host'],
