@@ -1,8 +1,10 @@
-import json
+#! /usr/bin/env python3
+
+import sys, os, zipfile, json
 import mysql.connector
 from xml.dom import minidom
 from datetime import datetime, timezone
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from itertools import zip_longest
 import pytz
 
@@ -44,8 +46,15 @@ def read_records(fn, datetime_to_start = None):
 
     if datetime_to_start is None:
         datetime_to_start = datetime.strptime('1970-01-01', '%Y-%m-%d').replace(tzinfo=timezone.utc)
-
-    xmldoc = minidom.parse(fn)
+    
+    if fn.endswith('.zip'):
+        print('Handling as zip file')
+        with zipfile.ZipFile(fn) as fz:
+            with fz.open(os.path.join('apple_health_export', 'export.xml')) as f:
+                xmldoc = minidom.parseString(f.read())
+    else:
+        xmldoc = minidom.parse(fn)
+    
     for s in xmldoc.getElementsByTagName('Record'):
         if s.attributes['type'].value in TYPES:
             dt = datetime.strptime(s.attributes['startDate'].value, DATETIME_FORMAT)
@@ -78,6 +87,11 @@ if __name__ == '__main__':
     with open('config.json', 'r') as f:
         config = json.load(f)
 
+    if len(sys.argv) > 1:
+        export_file = sys.argv[1]
+    else:
+        export_file = 'export.xml'
+
     datetime_to_start = get_max_datetime(config['db'])
 
-    save_records(config['db'], read_records('export.xml', datetime_to_start))
+    save_records(config['db'], read_records(export_file, datetime_to_start))
