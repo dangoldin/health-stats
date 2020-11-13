@@ -8,23 +8,24 @@ from collections import namedtuple
 from itertools import zip_longest
 import pytz
 
-Record = namedtuple('Record', 'type datetime value')
+Record = namedtuple("Record", "type datetime value")
 
 # From https://docs.python.org/3/library/itertools.html#recipes
 def grouper(n, iterable, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(fillvalue=fillvalue, *args)
 
+
 def get_max_datetime(creds):
     mydb = mysql.connector.connect(
-        host = creds['host'],
-        user = creds['user'],
-        passwd = creds['pass'],
-        database = creds['database'],
+        host=creds["host"],
+        user=creds["user"],
+        passwd=creds["pass"],
+        database=creds["database"],
     )
     mycursor = mydb.cursor()
 
-    sql = 'SELECT max(datetime) as max_datetime from health_stats'
+    sql = "SELECT max(datetime) as max_datetime from health_stats"
     mycursor.execute(sql)
 
     # There will be one or none - assumes MySQL is in UTC
@@ -33,43 +34,49 @@ def get_max_datetime(creds):
             return max_datetime.replace(tzinfo=timezone.utc)
     return None
 
-def read_records(fn, datetime_to_start = None):
-    DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S %z'
+
+def read_records(fn, datetime_to_start=None):
+    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S %z"
 
     TYPE_MAP = {
-        'HKQuantityTypeIdentifierBodyMass': 'BodyMass',
-        'HKQuantityTypeIdentifierHeartRate': 'HeartRate',
-        'HKQuantityTypeIdentifierStepCount': 'Steps',
+        "HKQuantityTypeIdentifierBodyMass": "BodyMass",
+        "HKQuantityTypeIdentifierHeartRate": "HeartRate",
+        "HKQuantityTypeIdentifierStepCount": "Steps",
     }
 
     TYPES = set(TYPE_MAP.keys())
 
     if datetime_to_start is None:
-        datetime_to_start = datetime.strptime('1970-01-01', '%Y-%m-%d').replace(tzinfo=timezone.utc)
-    
-    if fn.endswith('.zip'):
-        print('Handling as zip file')
+        datetime_to_start = datetime.strptime("1970-01-01", "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
+
+    if fn.endswith(".zip"):
+        print("Handling as zip file")
         with zipfile.ZipFile(fn) as fz:
-            with fz.open(os.path.join('apple_health_export', 'export.xml')) as f:
+            with fz.open(os.path.join("apple_health_export", "export.xml")) as f:
                 xmldoc = minidom.parseString(f.read())
     else:
         xmldoc = minidom.parse(fn)
-    
-    for s in xmldoc.getElementsByTagName('Record'):
-        if s.attributes['type'].value in TYPES:
-            dt = datetime.strptime(s.attributes['startDate'].value, DATETIME_FORMAT)
+
+    for s in xmldoc.getElementsByTagName("Record"):
+        if s.attributes["type"].value in TYPES:
+            dt = datetime.strptime(s.attributes["startDate"].value, DATETIME_FORMAT)
             if dt > datetime_to_start:
-                val = s.attributes['value'].value
-                yield Record(TYPE_MAP[s.attributes['type'].value], dt.astimezone(pytz.UTC), val)
+                val = s.attributes["value"].value
+                yield Record(
+                    TYPE_MAP[s.attributes["type"].value], dt.astimezone(pytz.UTC), val
+                )
+
 
 def save_records(creds, record_generator):
     BATCH_SIZE = 100
 
     mydb = mysql.connector.connect(
-        host = creds['host'],
-        user = creds['user'],
-        passwd = creds['pass'],
-        database = creds['database'],
+        host=creds["host"],
+        user=creds["user"],
+        passwd=creds["pass"],
+        database=creds["database"],
     )
     mycursor = mydb.cursor()
 
@@ -83,15 +90,16 @@ def save_records(creds, record_generator):
         mydb.commit()
         print(mycursor.rowcount, "record inserted.")
 
-if __name__ == '__main__':
-    with open('config.json', 'r') as f:
+
+if __name__ == "__main__":
+    with open("config.json", "r") as f:
         config = json.load(f)
 
     if len(sys.argv) > 1:
         export_file = sys.argv[1]
     else:
-        export_file = 'export.xml'
+        export_file = "export.xml"
 
-    datetime_to_start = get_max_datetime(config['db'])
+    datetime_to_start = get_max_datetime(config["db"])
 
-    save_records(config['db'], read_records(export_file, datetime_to_start))
+    save_records(config["db"], read_records(export_file, datetime_to_start))
