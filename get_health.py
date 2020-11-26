@@ -104,4 +104,6 @@ if __name__ == "__main__":
     else:
         export_file = "export.xml"
 
-    save_records(config["db"], read_records(export_file, get_max_datetime(config["db"])))
+    save_records(
+        config["db"], read_records(export_file, get_max_datetime(config["db"]))
+    )
