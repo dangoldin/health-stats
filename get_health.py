@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 
-import sys, os, zipfile, json
+import sys
+import os
+import zipfile
+import json
 import mysql.connector
 from xml.dom import minidom
 from datetime import datetime, timezone
@@ -105,4 +108,6 @@ if __name__ == "__main__":
     else:
         export_file = "export.xml"
 
-    save_records(config["db"], read_records(export_file, get_max_datetime(config["db"])))
+    save_records(
+        config["db"], read_records(export_file, get_max_datetime(config["db"]))
+    )
