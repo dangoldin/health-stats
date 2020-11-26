@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 
-import sys, os, zipfile, json
+import sys
+import os
+import zipfile
+import json
 import mysql.connector
 from xml.dom import minidom
 from datetime import datetime, timezone
