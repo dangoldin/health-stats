@@ -96,14 +96,12 @@ def save_records(creds, record_generator):
 
 
 if __name__ == "__main__":
-    with open("config.json", "r") as f:
-        config = json.load(f)
+    with open("config.json", "r") as config_f:
+        config = json.load(config_f)
 
     if len(sys.argv) > 1:
         export_file = sys.argv[1]
     else:
         export_file = "export.xml"
 
-    datetime_to_start = get_max_datetime(config["db"])
-
-    save_records(config["db"], read_records(export_file, datetime_to_start))
+    save_records(config["db"], read_records(export_file, get_max_datetime(config["db"])))
