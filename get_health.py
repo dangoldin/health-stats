@@ -52,7 +52,11 @@ def read_records(fn, datetime_to_start = None):
         with zipfile.ZipFile(fn) as fz:
             with fz.open(os.path.join('apple_health_export', 'export.xml')) as f:
                 xmldoc = minidom.parseString(f.read())
+    elif os.path.isdir(fn):
+        print('Handling as directory')
+        xmldoc = minidom.parse( os.path.join(fn, 'export.xml') )
     else:
+        print('Handling as export.xml file')
         xmldoc = minidom.parse(fn)
     
     for s in xmldoc.getElementsByTagName('Record'):
