@@ -10,6 +10,7 @@ import pytz
 
 Record = namedtuple("Record", "type datetime value")
 
+
 # From https://docs.python.org/3/library/itertools.html#recipes
 def grouper(n, iterable, fillvalue=None):
     args = [iter(iterable)] * n
