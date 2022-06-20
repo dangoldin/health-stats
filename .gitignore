@@ -133,3 +133,6 @@ config.json
 
 # Apple health files
 export.xml
+
+# IDE
+.vscode
