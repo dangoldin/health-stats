@@ -89,6 +89,7 @@ def save_records(creds, record_generator):
     mycursor = mydb.cursor()
 
     sql = "INSERT INTO health_stats (type, datetime, value) VALUES (%s, %s, %s)"
+    total_records_inserted = 0
     for batch in grouper(BATCH_SIZE, record_generator):
         vals = []
         for record in batch:
@@ -97,6 +98,8 @@ def save_records(creds, record_generator):
         mycursor.executemany(sql, vals)
         mydb.commit()
         print(mycursor.rowcount, "record inserted.")
+        total_records_inserted += mycursor.rowcount
+    print(total_records_inserted, "total records inserted.")
 
 
 if __name__ == "__main__":
